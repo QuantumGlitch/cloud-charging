@@ -140,8 +140,8 @@ async function waitAccountBalanceToBeUnlocked(accountId) {
       return { token: accountBalanceLock.casToken };
     }
 
-    // Wait 100ms and check if the account balance is still locked
-    wait(100);
+    // Wait 10ms and check if the account balance is still locked
+    wait(10);
     tries++;
 
     if (tries > MAX_RETRIES) {

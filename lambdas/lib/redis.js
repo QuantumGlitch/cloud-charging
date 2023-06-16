@@ -128,8 +128,9 @@ async function waitAccountBalanceToBeUnlocked(accountId) {
       return;
     }
 
-    // Wait 20ms and check if the account balance is still locked
-    wait(20);
+    // Wait 10ms and check if the account balance is still locked
+    // Randomize the retry time (so concurrent requests will check at different times)
+    wait(10);
     tries++;
 
     if (tries > MAX_RETRIES) {

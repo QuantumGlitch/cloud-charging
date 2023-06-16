@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "test": "yarn jest index.spec.js"
+  },
+  "dependencies": {
+    "jest": "^29.5.0",
+    "redis": "3.0.2"
+  }
+}
