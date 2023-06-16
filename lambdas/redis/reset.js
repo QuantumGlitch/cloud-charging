@@ -8,7 +8,7 @@ const {
   lockAccountBalance,
 } = require("../lib/redis");
 
-const DEFAULT_BALANCE = 100;
+const DEFAULT_BALANCE = 10000;
 
 /**
  * @param {Object} payload
@@ -34,5 +34,6 @@ exports.resetRedis = async function (payload) {
   });
 
   await disconnectRedisClient();
+  
   return res;
 };

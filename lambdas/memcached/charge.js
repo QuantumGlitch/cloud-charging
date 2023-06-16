@@ -38,6 +38,8 @@ exports.chargeRequestMemcached = async function (payload) {
 
   const { accountId, serviceType } = payload;
 
+  const start = Date.now();
+
   // This portion of code can be executed safely
   // Other requests will not interfere with the account balance change
   const res = await lockAccountBalance(accountId, async () => {
@@ -48,7 +50,16 @@ exports.chargeRequestMemcached = async function (payload) {
     );
 
     if (authorized) {
-      await setAccountBalance(accountId, currentBalance - charge);
+      try {
+        await setAccountBalance(accountId, currentBalance - charge);
+      } catch (e) {
+        // Too many concurrent requests, for the moment the charge cannot be disposed
+        return {
+          remainingBalance: currentBalance,
+          charges: 0,
+          authorized: false,
+        };
+      }
 
       return {
         remainingBalance: currentBalance - charge,
@@ -66,5 +77,7 @@ exports.chargeRequestMemcached = async function (payload) {
 
   await disconnectMemcached();
 
-  return res;
+  const end = Date.now();
+
+  return { ...res, computationTime: end - start };
 };

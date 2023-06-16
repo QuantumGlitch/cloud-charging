@@ -37,6 +37,8 @@ exports.chargeRequestRedis = async function (payload) {
     return;
   }
 
+  const start = Date.now();
+
   await setupRedisClient();
 
   const { accountId, serviceType } = payload;
@@ -68,5 +70,8 @@ exports.chargeRequestRedis = async function (payload) {
   });
 
   await disconnectRedisClient();
-  return res;
+
+  const end = Date.now();
+
+  return { ...res, computationTime: end - start };
 };

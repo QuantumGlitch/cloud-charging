@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const { setAccountBalance, lockAccountBalance, getAccountBalance } = require("../lib/memcached");
 
-const DEFAULT_BALANCE = 100;
+const DEFAULT_BALANCE = 10000;
 
 /**
  * @param {Object} payload
