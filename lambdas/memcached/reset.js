@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const { setAccountBalance, lockAccountBalance } = require("../lib/memcached");
+const { setAccountBalance, lockAccountBalance, getAccountBalance } = require("../lib/memcached");
 
 const DEFAULT_BALANCE = 100;
 
@@ -19,6 +19,9 @@ exports.resetMemcached = async function (payload) {
   // This portion of code can be executed safely
   // Other requests will not interfere with the account balance change
   return lockAccountBalance(accountId, async () => {
-    await setAccountBalance(payload.accountId, DEFAULT_BALANCE);
+    await setAccountBalance(accountId, DEFAULT_BALANCE)
+    return {
+      balance: await getAccountBalance(accountId),
+    };
   });
 };

@@ -8,7 +8,7 @@ const {
   setAccountBalance,
 } = require("../lib/memcached");
 
-async function isChargeAuthorized(balance, charge) {
+function isChargeAuthorized(balance, charge) {
   return charge <= balance;
 }
 

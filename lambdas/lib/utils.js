@@ -1,5 +1,5 @@
-export async function wait(time) {
+exports.wait = async function (time) {
   return new Promise((resolve) => {
-    setTimeout(resolve, );
+    setTimeout(resolve);
   });
-}
+};

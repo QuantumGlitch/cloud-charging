@@ -1,15 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const {
-  disconnectMemcached,
   getAccountBalance,
   getChargeByServiceType,
   lockAccountBalance,
   setAccountBalance,
   setupRedisClient,
+  disconnectRedisClient,
 } = require("../lib/redis");
 
-async function isChargeAuthorized(balance, charge) {
+function isChargeAuthorized(balance, charge) {
   return charge <= balance;
 }
 
@@ -31,7 +31,7 @@ async function canChargeAccount(accountId, serviceType) {
  * @param {string} payload.accountId the identifier of the user account
  * @param {"voice" | "data" | "message"} payload.serviceType the type of charge
  */
-exports.chargeRequestMemcached = async function (payload) {
+exports.chargeRequestRedis = async function (payload) {
   // We don't handle errors for the moment, we want the expected payload
   if (!payload.accountId || !payload.serviceType) {
     return;
@@ -67,6 +67,6 @@ exports.chargeRequestMemcached = async function (payload) {
     };
   });
 
-  await disconnectMemcached();
+  await disconnectRedisClient();
   return res;
 };

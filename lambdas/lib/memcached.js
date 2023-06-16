@@ -8,12 +8,12 @@ const MAX_EXPIRATION = 60 * 60 * 24 * 30;
 //#region Client handlers
 const client = new memcached(`${process.env.ENDPOINT}:${process.env.PORT}`);
 
-export async function disconnectMemcached() {
+async function disconnectMemcached() {
   await client.end();
 }
 //#endregion
 
-export function getChargeByServiceType(serviceType) {
+function getChargeByServiceType(serviceType) {
   switch (serviceType) {
     case "voice":
       return 5;
@@ -25,23 +25,23 @@ export function getChargeByServiceType(serviceType) {
 }
 
 //#region Utilities to better handle account's data
-export function getAccountBalanceKey(accountId) {
-  return `${accountId}/balance`;
+function getAccountBalanceKey(accountId) {
+  return Buffer.from(`${accountId}/balance`).toString("base64");
 }
 
-export function getAccountBalance(accountId) {
+function getAccountBalance(accountId) {
   return new Promise((resolve, reject) => {
     client.get(getAccountBalanceKey(accountId), (error, res) => {
       if (error) {
         reject(error);
       } else {
-        resolve(parseFloat(res));
+        resolve(res ? parseFloat(res) : 0);
       }
     });
   });
 }
 
-export async function setAccountBalance(accountId, balance) {
+async function setAccountBalance(accountId, balance) {
   return new Promise((resolve, reject) => {
     client.set(
       getAccountBalanceKey(accountId),
@@ -50,8 +50,10 @@ export async function setAccountBalance(accountId, balance) {
       (error, res) => {
         if (error) {
           reject(error);
+        } else if (!res) {
+          reject();
         } else {
-          resolve(parseFloat(res));
+          resolve();
         }
       }
     );
@@ -60,11 +62,11 @@ export async function setAccountBalance(accountId, balance) {
 //#endregion
 
 //#region Lock functionalities
-export function getAccountBalanceLockKey(accountId) {
-  return `${accountId}/balance/locked`;
+function getAccountBalanceLockKey(accountId) {
+  return Buffer.from(`${accountId}/balance/locked`).toString("base64");
 }
 
-export function isAccountBalanceLocked(accountId) {
+function isAccountBalanceLocked(accountId) {
   return new Promise((resolve, reject) => {
     client.get(getAccountBalanceLockKey(accountId), (error, res) => {
       if (error) {
@@ -76,7 +78,7 @@ export function isAccountBalanceLocked(accountId) {
   });
 }
 
-export function setAccountBalanceLock(accountId, value) {
+function setAccountBalanceLock(accountId, value) {
   return new Promise((resolve, reject) => {
     client.set(
       getAccountBalanceLockKey(accountId),
@@ -85,6 +87,8 @@ export function setAccountBalanceLock(accountId, value) {
       (error, res) => {
         if (error) {
           reject(error);
+        } else if (!res) {
+          reject();
         } else {
           resolve();
         }
@@ -94,7 +98,7 @@ export function setAccountBalanceLock(accountId, value) {
 }
 
 // When we call this function, it waits until the balance is free to be modified
-export async function waitAccountBalanceToBeUnlocked(accountId) {
+async function waitAccountBalanceToBeUnlocked(accountId) {
   const MAX_RETRIES = 10;
   let tries = 0;
   while (await isAccountBalanceLocked()) {
@@ -109,7 +113,7 @@ export async function waitAccountBalanceToBeUnlocked(accountId) {
 }
 
 // When we call this function, we want that any operation on the account balance, will be locked until the current one is finished
-export async function lockAccountBalance(accountId, lockReleaser) {
+async function lockAccountBalance(accountId, lockReleaser) {
   // Wait until the lock is released
   await waitAccountBalanceToBeUnlocked(accountId);
   // Setup the lock, so only the 'lockReleaser' can do operations on it
@@ -122,3 +126,9 @@ export async function lockAccountBalance(accountId, lockReleaser) {
   return res;
 }
 //#endregion
+
+exports.disconnectMemcached = disconnectMemcached;
+exports.getChargeByServiceType = getChargeByServiceType;
+exports.getAccountBalance = getAccountBalance;
+exports.lockAccountBalance = lockAccountBalance;
+exports.setAccountBalance = setAccountBalance;

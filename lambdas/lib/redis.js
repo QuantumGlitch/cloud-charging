@@ -7,7 +7,7 @@ const util = require("util");
 //#region Client handlers
 let client;
 
-export async function setupRedisClient() {
+async function setupRedisClient() {
   return new Promise((resolve, reject) => {
     try {
       const _client = new redis.RedisClient({
@@ -25,7 +25,7 @@ export async function setupRedisClient() {
   });
 }
 
-export async function disconnectRedisClient() {
+async function disconnectRedisClient() {
   return new Promise((resolve, reject) => {
     client.quit((error, res) => {
       if (error) {
@@ -41,7 +41,7 @@ export async function disconnectRedisClient() {
 }
 //#endregion
 
-export function getChargeByServiceType(serviceType) {
+function getChargeByServiceType(serviceType) {
   switch (serviceType) {
     case "voice":
       return 5;
@@ -53,11 +53,11 @@ export function getChargeByServiceType(serviceType) {
 }
 
 //#region Utilities to better handle account's data
-export function getAccountBalanceKey(accountId) {
+function getAccountBalanceKey(accountId) {
   return `${accountId}/balance`;
 }
 
-export async function getAccountBalance(accountId) {
+async function getAccountBalance(accountId) {
   const res = await util
     .promisify(client.get)
     .bind(client)
@@ -66,41 +66,43 @@ export async function getAccountBalance(accountId) {
   return res ? parseFloat(res) : 0;
 }
 
-export async function setAccountBalance(accountId, balance) {
+async function setAccountBalance(accountId, balance) {
   const res = await util
     .promisify(client.set)
     .bind(client)
     .call(client, getAccountBalanceKey(accountId), String(balance));
 
-  return res ? parseFloat(res) : 0;
+  return res;
 }
 //#endregion
 
 //#region Lock functionalities
-export function getAccountBalanceLockKey(accountId) {
+function getAccountBalanceLockKey(accountId) {
   return `${accountId}/balance/locked`;
 }
 
-export async function isAccountBalanceLocked(accountId) {
+async function isAccountBalanceLocked(accountId) {
   const res = await util
     .promisify(client.get)
     .bind(client)
     .call(client, getAccountBalanceLockKey(accountId));
 
-  return res ? res === "1" : "0";
+  console.log(res);
+
+  return res ? res === "1" : false;
 }
 
-export async function setAccountBalanceLock(accountId, value) {
+async function setAccountBalanceLock(accountId, value) {
   const res = await util
     .promisify(client.set)
     .bind(client)
     .call(client, getAccountBalanceLockKey(accountId), value ? "1" : "0");
 
-  return res ? parseFloat(res) : 0;
+  return res;
 }
 
 // When we call this function, it waits until the balance is free to be modified
-export async function waitAccountBalanceToBeUnlocked(accountId) {
+async function waitAccountBalanceToBeUnlocked(accountId) {
   const MAX_RETRIES = 10;
   let tries = 0;
   while (await isAccountBalanceLocked()) {
@@ -115,7 +117,7 @@ export async function waitAccountBalanceToBeUnlocked(accountId) {
 }
 
 // When we call this function, we want that any operation on the account balance, will be locked until the current one is finished
-export async function lockAccountBalance(accountId, lockReleaser) {
+async function lockAccountBalance(accountId, lockReleaser) {
   // Wait until the lock is released
   await waitAccountBalanceToBeUnlocked(accountId);
   // Setup the lock, so only the 'lockReleaser' can do operations on it
@@ -128,3 +130,10 @@ export async function lockAccountBalance(accountId, lockReleaser) {
   return res;
 }
 //#endregion
+
+exports.setupRedisClient = setupRedisClient;
+exports.disconnectRedisClient = disconnectRedisClient;
+exports.getChargeByServiceType = getChargeByServiceType;
+exports.getAccountBalance = getAccountBalance;
+exports.lockAccountBalance = lockAccountBalance;
+exports.setAccountBalance = setAccountBalance;
