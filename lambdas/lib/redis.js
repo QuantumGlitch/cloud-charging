@@ -93,39 +93,88 @@ async function isAccountBalanceLocked(accountId) {
 }
 
 async function setAccountBalanceLock(accountId, value) {
-  const res = await util
-    .promisify(client.set)
-    .bind(client)
-    .call(client, getAccountBalanceLockKey(accountId), value ? "1" : "0");
+  if (value) {
+    const res = await util
+      .promisify(client.setnx)
+      .bind(client)
+      .call(client, getAccountBalanceLockKey(accountId), "1");
+    console.log(res);
 
-  return res;
+    if (res === 0 || res === "0") {
+      throw "LOCKED";
+    }
+
+    return res;
+  } else {
+    const res = await util
+      .promisify(client.del)
+      .bind(client)
+      .call(client, getAccountBalanceLockKey(accountId));
+    console.log(res);
+    return res;
+  }
 }
 
 // When we call this function, it waits until the balance is free to be modified
 async function waitAccountBalanceToBeUnlocked(accountId) {
-  const MAX_RETRIES = 10;
+  const MAX_RETRIES = 100;
   let tries = 0;
-  while (await isAccountBalanceLocked()) {
+  let locked;
+  do {
+    locked = await isAccountBalanceLocked(accountId);
+    console.log(locked);
+
+    if (!locked) {
+      return;
+    }
+
     // Wait 20ms and check if the account balance is still locked
     wait(20);
     tries++;
 
     if (tries > MAX_RETRIES) {
-      throw new Error("MAX_RETRIES reached for lock waiting");
+      throw "MAX_RETRIES";
     }
-  }
+  } while (locked);
 }
 
 // When we call this function, we want that any operation on the account balance, will be locked until the current one is finished
 async function lockAccountBalance(accountId, lockReleaser) {
+  console.log(accountId);
+  const MAX_RETRIES = 100;
+  let tries = 0;
+
   // Wait until the lock is released
-  await waitAccountBalanceToBeUnlocked(accountId);
-  // Setup the lock, so only the 'lockReleaser' can do operations on it
-  setAccountBalanceLock(accountId, true);
+  while (true) {
+    tries++;
+
+    if (tries > MAX_RETRIES) {
+      throw "MAX_RETRIES";
+    }
+
+    await waitAccountBalanceToBeUnlocked(accountId);
+
+    try {
+      // Setup the lock, so only the 'lockReleaser' can do operations on it
+      await setAccountBalanceLock(accountId, true);
+      break;
+    } catch (e) {
+      if (e === "LOCKED") {
+        // Someone took the lock before this process, retry after
+        continue;
+      } else throw e;
+    }
+  }
+
   // Call the operation
   const res = await lockReleaser();
-  // Free the lock
-  await setAccountBalanceLock(accountId, false);
+
+  try {
+    // Free the lock
+    await setAccountBalanceLock(accountId, false);
+  } catch (e) {
+    throw "CANNOT_FREE_LOCK";
+  }
 
   return res;
 }

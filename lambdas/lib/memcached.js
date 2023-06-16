@@ -187,7 +187,7 @@ async function lockAccountBalance(accountId, lockReleaser) {
     // Free the lock
     await setAccountBalanceLock(accountId, false);
   } catch (e) {
-    throw "cannot_free_lock";
+    throw "CANNOT_FREE_LOCK";
   }
 
   return res;
